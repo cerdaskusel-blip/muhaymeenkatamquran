@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ramadhan Muhymin – Quran Khatam Tracker 1447H</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9fafb;
+            color: #1f2937;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #title-section {
+            text-align: center;
+            padding: 20px;
+            background-color: #10B981; /* Emerald green */
+            color: white;
+            width: 100%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #title {
+            font-size: 24px;
+            margin: 0;
+        }
+
+        #subtitle {
+            font-size: 16px;
+            margin: 5px 0 0;
+        }
+
+        #progress-section {
+            position: sticky;
+            top: 0;
+            background-color: white;
+            width: 100%;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            text-align: center;
+        }
+
+        #progress-bar {
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            height: 10px;
+            margin-bottom: 10px;
+        }
+
+        #progress-fill {
+            background-color: #10B981;
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.3s ease;
+        }
+
+        #progress-text {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        #grid-section {
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+        }
+
+        .juz-header {
+            font-size: 20px;
+            color: #10B981;
+            margin: 20px 0 10px;
+            text-align: center;
+        }
+
+        .juz-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+            gap: 10px;
+        }
+
+        .page-box {
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            font-size: 14px;
+        }
+
+        .page-box.completed {
+            background-color: #10B981;
+            color: white;
+            border-color: #10B981;
+            animation: tick 0.3s ease;
+        }
+
+        @keyframes tick {
+            0% { transform: scale(0.9); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        #extra-features {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        button {
+            background-color: #10B981;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        button:hover {
+            background-color: #059669;
+        }
+
+        #completion-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            animation: pop 0.5s ease;
+            z-index: 20;
+        }
+
+        @keyframes pop {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        #completion-modal h2 {
+            color: #10B981;
+            font-size: 24px;
+        }
+
+        /* Gold accent */
+        .gold-accent {
+            color: #D4AF37;
+        }
+    </style>
+</head>
+<body>
+    <div id="title-section">
+        <h1 id="title">Ramadhan Muhymin – Quran Khatam Tracker 1447H</h1>
+        <p id="subtitle">604 Pages • 30 Juzuk • Track Your Journey</p>
+    </div>
+
+    <div id="progress-section">
+        <div id="progress-bar">
+            <div id="progress-fill" style="width: 0%;"></div>
+        </div>
+        <p id="progress-text">Progress: 0% <br> Pages: 0 / 604 <br> Estimated Juz: 0</p>
+    </div>
+
+    <div id="grid-section"></div>
+
+    <div id="extra-features">
+        <button onclick="resetTracker()">Reset Tracker</button>
+        <button onclick="exportProgress()">Export Progress</button>
+        <!-- Mark All Pages Today could be interpreted as marking a batch, but since not specified, omitted for simplicity -->
+    </div>
+
+    <div id="completion-modal">
+        <h2>🎉 Tahniah! Anda telah Khatam Al-Quran 🎉</h2>
+        <button onclick="closeModal()">Tutup</button>
+    </div>
+
+    <script>
+        const totalPages = 604;
+        const juzStarts = [1, 22, 42, 62, 82, 102, 121, 142, 162, 182, 201, 222, 242, 262, 282, 302, 322, 342, 362, 382, 402, 422, 442, 462, 482, 502, 522, 542, 562, 582];
+        let completedPages = new Array(totalPages + 1).fill(false); // Index 1 to 604
+
+        function loadProgress() {
+            const saved = localStorage.getItem('quranTracker');
+            if (saved) {
+                completedPages = JSON.parse(saved);
+            }
+            updateGrid();
+            updateProgress();
+        }
+
+        function saveProgress() {
+            localStorage.setItem('quranTracker', JSON.stringify(completedPages));
+        }
+
+        function togglePage(element) {
+            const page = parseInt(element.dataset.page);
+            completedPages[page] = !completedPages[page];
+            element.classList.toggle('completed');
+            saveProgress();
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const completedCount = completedPages.filter(Boolean).length;
+            const percentage = Math.round((completedCount / totalPages) * 100);
+            document.getElementById('progress-fill').style.width = `${percentage}%`;
+            const avgPagesPerJuz = totalPages / 30;
+            const estimatedJuz = Math.floor(completedCount / avgPagesPerJuz);
+            document.getElementById('progress-text').innerHTML = `Progress: ${percentage}% <br> Pages: ${completedCount} / 604 <br> Estimated Juz: ${estimatedJuz}`;
+
+            if (percentage === 100) {
+                document.getElementById('completion-modal').style.display = 'block';
+            }
+        }
+
+        function updateGrid() {
+            const gridSection = document.getElementById('grid-section');
+            gridSection.innerHTML = '';
+            for (let juz = 1; juz <= 30; juz++) {
+                const header = document.createElement('h2');
+                header.classList.add('juz-header');
+                header.textContent = `Juz ${juz}`;
+                gridSection.appendChild(header);
+
+                const juzGrid = document.createElement('div');
+                juzGrid.classList.add('juz-grid');
+
+                const start = juzStarts[juz - 1];
+                const end = (juz === 30) ? totalPages : juzStarts[juz] - 1;
+
+                for (let page = start; page <= end; page++) {
+                    const box = document.createElement('div');
+                    box.classList.add('page-box');
+                    box.dataset.page = page;
+                    box.textContent = page;
+                    box.onclick = () => togglePage(box);
+                    if (completedPages[page]) {
+                        box.classList.add('completed');
+                    }
+                    juzGrid.appendChild(box);
+                }
+                gridSection.appendChild(juzGrid);
+            }
+        }
+
+        function resetTracker() {
+            if (confirm('Adakah anda pasti mahu reset tracker? Semua progress akan hilang.')) {
+                completedPages = new Array(totalPages + 1).fill(false);
+                saveProgress();
+                updateGrid();
+                updateProgress();
+            }
+        }
+
+        function exportProgress() {
+            const data = JSON.stringify(completedPages);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'quran-tracker-progress.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function closeModal() {
+            document.getElementById('completion-modal').style.display = 'none';
+        }
+
+        loadProgress();
+    </script>
+</body>
+</html>
